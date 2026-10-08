@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Teacher Control</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+</head>
+
+<body>
+
+<div class="arcadeBorder"></div>
+  
+<audio id="openSound">
+<source src="openroom.mp3">
+</audio>
+  
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+
+const firebaseConfig = {
+
+apiKey:"AIzaSyB0nD9jNRiFK5RCAnqgKx8XUoIMAYrQb6A",
+
+authDomain:"tetris-28758.firebaseapp.com",
+
+databaseURL:"https://tetris-28758-default-rtdb.firebaseio.com",
+
+projectId:"tetris-28758",
+
+storageBucket:"tetris-28758.firebasestorage.app",
+
+messagingSenderId:"1015367759404",
+
+appId:"1:1015367759404:web:24d2199ccf997b862c8389"
+
+};
+
+firebase.initializeApp(firebaseConfig);
+
+</script>
+  
+<img id="qrCode" src="qrcode.png">
+
+<div id="qrModal" class="qrModal hidden">
+  <div class="qrContent">
+    
+    <span id="closeQR" class="closeBtn">✖</span>
+    
+    <img src="qrcode.png" class="qrBig">
+  
+  </div>
+</div>
+
+<div id="loginOverlay" class="loginOverlay">
+
+<div class="tetrisDecor">
+
+  <div class="piece t"></div>
+  <div class="piece line"></div>
+  <div class="piece l"></div>
+  <div class="piece square"></div>
+
+</div>
+  
+  <div class="loginBoxRetro">
+
+    <div class="sideGhost leftGhost">👻</div>
+    <div class="sideGhost rightGhost">👾</div>
+    
+    <h2><span class="ghost">👾</span> TEACHER ACCESS</h2>
+
+    <div class="tetrisLine"></div>
+
+    <input id="passwordInput" type="password" placeholder="ENTER PASSWORD">
+
+    <button onclick="checkPassword()">START</button>
+
+    <p id="errorMsg"></p>
+
+<div class="pacmanOrbit">
+    <div class="pacman"></div>
+</div>
+    
+  </div>
+
+</div>
+  
+<!-- 🔥 CONTENEDOR REAL -->
+<div id="teacherContainer">
+
+<div id="teacherBox">
+
+<h1>🎮 Teacher Control</h1>
+
+<div id="teacherTimer" class="retroTimer">
+⏱ TIME: <span id="teacherTimeText">--</span>
+</div>
+
+<audio id="timeOverSound">
+<source src="notime.mp3">
+</audio>
+
+Room Code:
+
+<br>
+
+<div class="roomCodeRow">
+  <input id="roomInput" readonly placeholder="Generating...">
+  <button type="button" class="roomIconBtn" id="copyRoomBtn" onclick="copyRoomCode()" title="Copy code">📋</button>
+  <button type="button" class="roomIconBtn" id="newRoomBtn" onclick="generateRoomCode()" title="New random code">🔄</button>
+</div>
+<p id="copyFeedback" class="copyFeedback"></p>
+
+<br>
+
+Game Time (Minutes):
+
+<br>
+
+<input 
+id="timeInput"
+type="number"
+min="1"
+max="60"
+step="1"
+value="8"
+class="timeSelector"
+>
+
+<button class="teacherBtn" onclick="openRoom()">Open Room</button>
+
+<button class="teacherBtn" onclick="startGame()">Start Game</button>
+
+<button class="teacherBtn" onclick="goToFinalRanking()">
+🏆 Final Ranking
+</button>
+
+<button class="teacherBtn" onclick="goToStats()">
+📊 Statistics
+</button>
+
+<button class="teacherBtn" onclick="openQuestionsEditor()">
+📝 Questions
+</button>
+  
+</div>
+
+<!-- PANEL DERECHO -->
+<div id="playersPanel">
+    <h2>👥 Players</h2>
+    <div id="playersList"></div>
+</div>
+
+<canvas id="watchCanvas" width="250" height="500"></canvas>
+
+</div> <!-- ← ESTE CIERRA teacherContainer -->
+
+<!-- ========== EDITOR DE PREGUNTAS ========== -->
+<div id="questionsModal" class="qModal hidden">
+  <div class="qModalBox">
+    <div class="qModalHeader">
+      <h2>📝 Questions Editor</h2>
+      <button class="qCloseBtn" onclick="closeQuestionsEditor()">✖</button>
+    </div>
+
+    <div class="qModalBody">
+      <!-- Lista de preguntas -->
+      <div id="qListPanel">
+        <div class="qListHeader">
+          <span id="qCount">0 questions</span>
+          <button class="qAddBtn" onclick="showQuestionForm(-1)">＋ Add question</button>
+        </div>
+        <div id="qList"></div>
+      </div>
+
+      <!-- Formulario -->
+      <div id="qFormPanel" class="hidden">
+        <h3 id="qFormTitle">New question</h3>
+
+        <label>Question</label>
+        <textarea id="qText" rows="2" placeholder="Write the question..."></textarea>
+
+        <label>Option A</label>
+        <div class="qOptionRow">
+          <input type="radio" name="qCorrect" value="0" id="qRadio0" checked>
+          <input type="text" id="qOpt0" placeholder="Option A">
+        </div>
+
+        <label>Option B</label>
+        <div class="qOptionRow">
+          <input type="radio" name="qCorrect" value="1" id="qRadio1">
+          <input type="text" id="qOpt1" placeholder="Option B">
+        </div>
+
+        <label>Option C</label>
+        <div class="qOptionRow">
+          <input type="radio" name="qCorrect" value="2" id="qRadio2">
+          <input type="text" id="qOpt2" placeholder="Option C">
+        </div>
+
+        <p class="qHint">Select the radio button of the <b>correct</b> answer</p>
+
+        <div class="qFormActions">
+          <button class="qSaveBtn" onclick="saveQuestion()">💾 Save</button>
+          <button class="qCancelBtn" onclick="hideQuestionForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+let roomCode="";
+
+let teacherTimerInterval;
+
+let selectedPlayer = null;
+
+let currentQuiz = null;
+
+// 🔥 CANVAS VIEWER
+const viewCanvas = document.getElementById("watchCanvas");
+const viewCtx = viewCanvas.getContext("2d");
+
+const COLS = 10;
+const ROWS = 20;
+const SIZE = 25;
+
+viewCanvas.width = COLS * SIZE;
+viewCanvas.height = ROWS * SIZE;
+
+const colors = [
+null,
+"cyan",
+"yellow",
+"purple",
+"green",
+"red",
+"blue",
+"orange"
+];
+
+function drawFullGame(board, piece){
+
+if(!board) return;
+
+viewCtx.clearRect(0,0,viewCanvas.width,viewCanvas.height);
+
+// 🔲 dibujar tablero
+for(let y=0; y<ROWS; y++){
+for(let x=0; x<COLS; x++){
+
+let value = board[y][x];
+
+if(value){
+viewCtx.fillStyle = colors[value];
+viewCtx.fillRect(x*SIZE, y*SIZE, SIZE, SIZE);
+viewCtx.strokeRect(x*SIZE, y*SIZE, SIZE, SIZE);
+}
+
+}
+}
+
+// 🔥 dibujar pieza cayendo (ESTO ES LA MAGIA)
+if(piece){
+
+piece.shape.forEach((row,y)=>{
+row.forEach((value,x)=>{
+
+if(value){
+
+viewCtx.fillStyle = colors[value];
+
+viewCtx.fillRect(
+(piece.x + x)*SIZE,
+(piece.y + y)*SIZE,
+SIZE,
+SIZE
+);
+
+viewCtx.strokeRect(
+(piece.x + x)*SIZE,
+(piece.y + y)*SIZE,
+SIZE,
+SIZE
+);
+
+}
+
+});
+});
+
+}
+
+// 🎯 DIBUJAR QUIZ COMO OVERLAY
+if(currentQuiz){
+
+drawQuizOverlay(currentQuiz);
+
+}
+
+}
+
+function drawQuizOverlay(quiz){
+
+// fondo oscuro transparente
+viewCtx.fillStyle = "rgba(0,0,0,0.7)";
+viewCtx.fillRect(0, 150, viewCanvas.width, 200);
+
+// pregunta
+viewCtx.fillStyle = "#00ffff";
+viewCtx.font = "14px monospace";
+
+wrapText(viewCtx, quiz.question, 10, 170, 230, 18);
+
+// respuestas
+quiz.answers.forEach((ans, i)=>{
+
+let y = 210 + i*30;
+
+// colores según respuesta
+if(quiz.selected !== null){
+
+if(i === quiz.correct){
+viewCtx.fillStyle = "green";
+}
+else if(i === quiz.selected){
+viewCtx.fillStyle = "red";
+}
+else{
+viewCtx.fillStyle = "white";
+}
+
+}else{
+viewCtx.fillStyle = "white";
+}
+
+viewCtx.fillText(ans, 10, y);
+
+});
+
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+
+let words = text.split(' ');
+let line = '';
+
+for(let n = 0; n < words.length; n++){
+
+let testLine = line + words[n] + ' ';
+let metrics = ctx.measureText(testLine);
+let testWidth = metrics.width;
+
+if(testWidth > maxWidth && n > 0){
+
+ctx.fillText(line, x, y);
+line = words[n] + ' ';
+y += lineHeight;
+
+}else{
+line = testLine;
+}
+
+}
+
+ctx.fillText(line, x, y);
+
+}
+
+function drawBoard(board){
+
+if(!board) return;
+
+viewCtx.clearRect(0,0,viewCanvas.width,viewCanvas.height);
+
+for(let y=0; y<ROWS; y++){
+for(let x=0; x<COLS; x++){
+
+let value = board[y][x];
+
+if(value){
+viewCtx.fillStyle = colors[value];
+viewCtx.fillRect(x*SIZE, y*SIZE, SIZE, SIZE);
+viewCtx.strokeRect(x*SIZE, y*SIZE, SIZE, SIZE);
+}
+
+}
+}
+
+}
+
+// Generar código aleatorio de 6 caracteres (fácil de dictar en clase)
+function generateRoomCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin I,O,0,1 para evitar confusión
+  let code = "";
+  for(let i = 0; i < 6; i++){
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById("roomInput").value = code;
+  let feedback = document.getElementById("copyFeedback");
+  if(feedback) feedback.innerText = "";
+  return code;
+}
+
+function copyRoomCode(){
+  let code = document.getElementById("roomInput").value;
+  if(!code){
+    code = generateRoomCode();
+  }
+
+  let feedback = document.getElementById("copyFeedback");
+
+  function showCopied(){
+    if(feedback){
+      feedback.innerText = "✅ Code copied!";
+      setTimeout(()=>{ feedback.innerText = ""; }, 2000);
+    }
+  }
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(showCopied).catch(()=>{
+      // fallback
+      let input = document.getElementById("roomInput");
+      input.removeAttribute("readonly");
+      input.select();
+      document.execCommand("copy");
+      input.setAttribute("readonly", "readonly");
+      showCopied();
+    });
+  }else{
+    let input = document.getElementById("roomInput");
+    input.removeAttribute("readonly");
+    input.select();
+    document.execCommand("copy");
+    input.setAttribute("readonly", "readonly");
+    showCopied();
+  }
+}
+
+// Generar un código al cargar el panel
+window.addEventListener("DOMContentLoaded", ()=>{
+  if(!document.getElementById("roomInput").value){
+    generateRoomCode();
+  }
+});
+// por si el script corre después del DOM
+if(document.readyState !== "loading"){
+  if(document.getElementById("roomInput") && !document.getElementById("roomInput").value){
+    generateRoomCode();
+  }
+}
+
+function openRoom(){
+
+// Usar el código generado (o generar uno si está vacío)
+roomCode = document.getElementById("roomInput").value.trim().toUpperCase();
+
+if(!roomCode){
+  roomCode = generateRoomCode();
+}
+
+document.getElementById("roomInput").value = roomCode;
+
+// 🔥 IMPORTANTE: usar update() en lugar de set()
+// set() borraba todos los players que ya se habían registrado
+firebase.database()
+.ref("rooms/"+roomCode)
+.update({
+  status: "waiting",
+  startTime: 0
+});
+
+// Asegurar que existan los nodos players y firstTry sin borrarlos
+firebase.database().ref("rooms/"+roomCode+"/players").once("value", snap => {
+  if(!snap.exists()){
+    firebase.database().ref("rooms/"+roomCode+"/players").set({});
+  }
+});
+firebase.database().ref("rooms/"+roomCode+"/firstTry").once("value", snap => {
+  if(!snap.exists()){
+    firebase.database().ref("rooms/"+roomCode+"/firstTry").set({});
+  }
+});
+
+listenPlayers();
+watchGame();
+
+// 🔊 sonido
+document.getElementById("openSound").play();
+
+// ✨ animación botón
+let btn = document.querySelector(".teacherBtn");
+
+btn.classList.add("roomActive");
+
+}
+
+function startGame(){
+
+let btns = document.querySelectorAll(".teacherBtn");
+let startBtn = btns[1]; // segundo botón
+
+// animación arcade
+startBtn.style.transform="scale(1.1)";
+startBtn.style.boxShadow="0 0 20px #00ffff";
+startBtn.classList.add("roomActive");
+
+// sonido de inicio
+let startSound = new Audio("start.mp3");
+startSound.volume = 0.6;
+startSound.play();
+
+let minutes = document.getElementById("timeInput").value;
+
+if(!minutes){
+minutes = 8;
+}
+
+generateQuestionOrder();
+
+let seconds = minutes * 60;
+
+firebase.database()
+.ref("rooms/"+roomCode)
+.update({
+status:"playing",
+startTime: Date.now(),
+gameTime: seconds
+});
+startTeacherTimer();
+}
+
+function listenPlayers(){
+
+// Evitar listeners duplicados si se abre la sala varias veces
+if(window._playersListener){
+  firebase.database().ref("rooms/"+roomCode+"/players").off("value", window._playersListener);
+}
+
+window._playersListener = function(snap){
+
+let data = snap.val();
+
+let html = "";
+
+if(!data || Object.keys(data).length === 0){
+  html = "<p style='opacity:0.6;font-size:11px;text-align:center;'>Waiting for players...</p>";
+}else{
+
+  html += `
+  <div class="playersTable">
+    <div class="playersTableHeader">
+      <span class="colName">Nombre de usuario</span>
+      <span class="colScore">Puntaje</span>
+    </div>
+  `;
+
+  // ordenar por puntaje descendente
+  Object.values(data)
+  .filter(p => p && p.id)
+  .sort((a,b) => (b.score||0) - (a.score||0))
+  .forEach(p=>{
+    html += `
+    <button class="playerRow" data-id="${p.id}" onclick="watchPlayer('${p.id}')">
+      <span class="colName">${p.name || "?"}</span>
+      <span class="colScore">${p.score ?? 0}</span>
+    </button>
+    `;
+  });
+
+  html += `</div>`;
+
+}
+
+document.getElementById("playersList").innerHTML = html;
+
+// 🔥 volver a aplicar selección visual
+highlightSelectedPlayer();
+
+};
+
+firebase.database()
+.ref("rooms/"+roomCode+"/players")
+.on("value", window._playersListener);
+
+}
+
+function watchGame(){
+
+firebase.database()
+.ref("rooms/"+roomCode+"/gameStates")
+.on("value", snap=>{
+
+let data = snap.val();
+
+if(!data) return;
+
+// obtener jugador seleccionado
+firebase.database()
+.ref("rooms/"+roomCode+"/selectedPlayer")
+.once("value", s=>{
+
+let selected = s.val();
+
+if(!selected || !data[selected]) return;
+
+let game = data[selected];
+
+if(game.quiz){
+
+currentQuiz = game.quiz;
+
+}else{
+
+currentQuiz = null;
+
+}
+
+console.log("🎮 estado jugador:", game);
+
+drawFullGame(game.board, game.piece);
+
+});
+
+});
+
+}
+
+function goToFinalRanking(){
+
+if(!roomCode){
+alert("Open a room first");
+return;
+}
+
+window.open("index.html?final="+roomCode, "_blank");
+
+}
+  
+function watchPlayer(playerId){
+
+selectedPlayer = playerId; // 🔥 guardar local
+
+firebase.database()
+.ref("rooms/"+roomCode)
+.update({
+selectedPlayer: playerId
+});
+
+console.log("👀 Viendo jugador:", playerId);
+
+// 🔥 actualizar estilos visuales
+highlightSelectedPlayer();
+
+}
+
+function highlightSelectedPlayer(){
+
+let buttons = document.querySelectorAll("#playersList button");
+
+buttons.forEach(btn => {
+
+if(btn.dataset.id === selectedPlayer){
+
+btn.classList.add("activePlayer");
+
+}else{
+
+btn.classList.remove("activePlayer");
+
+}
+
+});
+
+}
+
+function startTeacherTimer(){
+
+let start = 0;
+let limit = 0;
+
+// 🔥 escuchar SOLO los datos necesarios
+firebase.database()
+.ref("rooms/"+roomCode+"/startTime")
+.on("value", snap => {
+   start = snap.val();
+});
+
+firebase.database()
+.ref("rooms/"+roomCode+"/gameTime")
+.on("value", snap => {
+   limit = snap.val();
+});
+
+// 🚀 iniciar UNA sola vez
+if(teacherTimerInterval){
+   clearInterval(teacherTimerInterval);
+}
+
+teacherTimerInterval = setInterval(()=>{
+
+if(!start || !limit) return;
+
+let now = Date.now();
+
+let secondsPassed = Math.floor((now - start)/1000);
+let remaining = limit - secondsPassed;
+
+if(remaining < 0) remaining = 0;
+
+// mostrar tiempo
+document.getElementById("teacherTimeText").innerText = remaining;
+
+// 🚨 cuando termina
+if(remaining <= 0){
+
+clearInterval(teacherTimerInterval);
+
+// efecto rojo retro (LO CONSERVAMOS)
+let timerBox = document.getElementById("teacherTimer");
+timerBox.classList.add("timeDanger");
+
+// 🔊 sonido (LO CONSERVAMOS)
+document.getElementById("timeOverSound").play();
+
+}
+
+},1000);
+
+}
+
+function goToStats(){
+   if(!roomCode){
+      alert("Open a room first");
+      return;
+   }
+
+   window.open("stats.html?room="+roomCode, "_blank");
+}
+  
+function generateQuestionOrder(){
+
+// Usar preguntas de Firebase (editor del teacher)
+firebase.database()
+.ref("gameQuestions")
+.once("value")
+.then(snap => {
+
+let data = snap.val();
+let total = 0;
+
+if(data && Array.isArray(data) && data.length > 0){
+  total = data.length;
+}else{
+  // Fallback: contar desde Sheets si no hay preguntas en Firebase
+  return fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vSuZY8I3EBxrL3tML7ABICEOr2WxHuCi88co-0K0C_U7KBmqulqSHjuJnfSIrHayaVWsAEkKVmsK-mA/pub?output=csv")
+  .then(res => res.text())
+  .then(text => {
+    total = text.split("\n").slice(1).filter(r => r.trim() !== "").length;
+    return total;
+  });
+}
+
+return total;
+
+})
+.then(total => {
+
+if(!total || total < 1){
+  alert("⚠ No questions found. Open Questions editor and add some first.");
+  return;
+}
+
+// crear array [0,1,2,3,...]
+let order = Array.from({length: total}, (_,i)=>i);
+
+// 🔀 mezclar (shuffle)
+for(let i = order.length -1; i>0; i--){
+   let j = Math.floor(Math.random()*(i+1));
+   [order[i], order[j]] = [order[j], order[i]];
+}
+
+// guardar en Firebase
+firebase.database()
+.ref("rooms/"+roomCode)
+.update({
+   questionOrder: order,
+   questionIndex: 0
+});
+
+});
+
+}
+
+// ========== EDITOR DE PREGUNTAS ==========
+
+let teacherQuestions = [];
+let editingIndex = -1; // -1 = nueva, >=0 = editar
+
+function openQuestionsEditor(){
+  document.getElementById("questionsModal").classList.remove("hidden");
+  hideQuestionForm();
+  loadTeacherQuestions();
+}
+
+function closeQuestionsEditor(){
+  document.getElementById("questionsModal").classList.add("hidden");
+  hideQuestionForm();
+}
+
+function loadTeacherQuestions(){
+  firebase.database()
+  .ref("gameQuestions")
+  .once("value")
+  .then(snap => {
+    let data = snap.val();
+    teacherQuestions = (data && Array.isArray(data)) ? data : [];
+    renderQuestionList();
+  })
+  .catch(() => {
+    teacherQuestions = [];
+    renderQuestionList();
+  });
+}
+
+function renderQuestionList(){
+  let list = document.getElementById("qList");
+  let count = document.getElementById("qCount");
+
+  count.innerText = teacherQuestions.length + " question" + (teacherQuestions.length !== 1 ? "s" : "");
+
+  if(teacherQuestions.length === 0){
+    list.innerHTML = "<p class='qEmpty'>No questions yet. Click ＋ Add question</p>";
+    return;
+  }
+
+  let html = "";
+  teacherQuestions.forEach((q, i) => {
+    let correctLetter = ["A","B","C"][q.correct] || "?";
+    let preview = (q.q || "").substring(0, 60);
+    if((q.q || "").length > 60) preview += "…";
+
+    html += `
+    <div class="qItem">
+      <div class="qItemText">
+        <span class="qItemNum">${i+1}.</span>
+        ${preview}
+        <span class="qItemCorrect">✓ ${correctLetter}</span>
+      </div>
+      <div class="qItemBtns">
+        <button onclick="showQuestionForm(${i})" title="Edit">✏️</button>
+        <button onclick="deleteQuestion(${i})" title="Delete">🗑️</button>
+      </div>
+    </div>`;
+  });
+
+  list.innerHTML = html;
+}
+
+function showQuestionForm(index){
+  editingIndex = index;
+  document.getElementById("qFormPanel").classList.remove("hidden");
+  document.getElementById("qListPanel").classList.add("hidden");
+
+  if(index < 0){
+    // Nueva pregunta
+    document.getElementById("qFormTitle").innerText = "New question";
+    document.getElementById("qText").value = "";
+    document.getElementById("qOpt0").value = "";
+    document.getElementById("qOpt1").value = "";
+    document.getElementById("qOpt2").value = "";
+    document.getElementById("qRadio0").checked = true;
+  }else{
+    // Editar
+    let q = teacherQuestions[index];
+    document.getElementById("qFormTitle").innerText = "Edit question " + (index+1);
+    document.getElementById("qText").value = q.q || "";
+    document.getElementById("qOpt0").value = (q.a && q.a[0]) || "";
+    document.getElementById("qOpt1").value = (q.a && q.a[1]) || "";
+    document.getElementById("qOpt2").value = (q.a && q.a[2]) || "";
+    let correct = Number(q.correct) || 0;
+    document.getElementById("qRadio" + correct).checked = true;
+  }
+}
+
+function hideQuestionForm(){
+  document.getElementById("qFormPanel").classList.add("hidden");
+  document.getElementById("qListPanel").classList.remove("hidden");
+  editingIndex = -1;
+}
+
+function saveQuestion(){
+  let text = document.getElementById("qText").value.trim();
+  let a0 = document.getElementById("qOpt0").value.trim();
+  let a1 = document.getElementById("qOpt1").value.trim();
+  let a2 = document.getElementById("qOpt2").value.trim();
+  let correctRadio = document.querySelector('input[name="qCorrect"]:checked');
+  let correct = correctRadio ? Number(correctRadio.value) : 0;
+
+  if(!text){
+    alert("Write the question");
+    return;
+  }
+  if(!a0 || !a1 || !a2){
+    alert("Fill all 3 options");
+    return;
+  }
+
+  let question = {
+    q: text,
+    a: [a0, a1, a2],
+    correct: correct
+  };
+
+  if(editingIndex < 0){
+    teacherQuestions.push(question);
+  }else{
+    teacherQuestions[editingIndex] = question;
+  }
+
+  // Guardar en Firebase
+  firebase.database()
+  .ref("gameQuestions")
+  .set(teacherQuestions)
+  .then(() => {
+    hideQuestionForm();
+    renderQuestionList();
+  })
+  .catch(err => {
+    alert("Error saving: " + err.message);
+  });
+}
+
+function deleteQuestion(index){
+  if(!confirm("Delete question " + (index+1) + "?")) return;
+
+  teacherQuestions.splice(index, 1);
+
+  firebase.database()
+  .ref("gameQuestions")
+  .set(teacherQuestions)
+  .then(() => {
+    renderQuestionList();
+  })
+  .catch(err => {
+    alert("Error deleting: " + err.message);
+  });
+}
+
+function checkPassword(){
+
+let pass = document.getElementById("passwordInput").value;
+
+if(pass === "teacher1230"){
+
+document.getElementById("loginOverlay").style.display = "none";
+
+}else{
+
+document.getElementById("errorMsg").innerText = "❌ WRONG PASSWORD";
+
+}
+
+}
+  
+const qr = document.getElementById("qrCode");
+const modal = document.getElementById("qrModal");
+const closeBtn = document.getElementById("closeQR");
+
+// abrir modal
+qr.addEventListener("click", () => {
+  modal.classList.remove("hidden");
+});
+
+// cerrar con X
+closeBtn.addEventListener("click", () => {
+  modal.classList.add("hidden");
+});
+
+// cerrar si hacen click fuera de la imagen
+modal.addEventListener("click", (e) => {
+  if(e.target === modal){
+    modal.classList.add("hidden");
+  }
+});
+  
+</script>
+
+</body>
+
+</html>
+
+
+
+
+
+
